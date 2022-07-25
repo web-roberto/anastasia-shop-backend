@@ -51,7 +51,8 @@ router.get(`/`, async (req, res) => {
 });
 
 router.get(`/:id`, async (req, res) => {
-    const product = await Product.findById(req.params.id).populate('category');
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    const product = await Product.findById(id_obj).populate('category');
     if (!product) {
         res.status(500).json({ success: false });
     }
@@ -93,13 +94,14 @@ router.post(`/`, uploadOptions.single('image'), async (req, res) => {
 router.put('/:id', uploadOptions.single('image'), async (req, res) => {
     // isValidObjectID to evoid using try {} catch, to avoid an exception
     // we use it ony in PUTs
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    if (!mongoose.isValidObjectId(id_obj)) {
         return res.status(400).send('Invalid Product Id');
     }
     const category = await Category.findById(req.body.category);
     if (!category) return res.status(400).send('Invalid Category');
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(id_obj);
     if (!product) return res.status(400).send('Invalid Product!');
 
     const file = req.file; //it comes from FORM-DATA, no in BODY and not in QUERY (url)
@@ -114,7 +116,7 @@ router.put('/:id', uploadOptions.single('image'), async (req, res) => {
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
-        req.params.id,
+        id_obj,
         {
             name: req.body.name,
             description: req.body.description,
@@ -138,7 +140,8 @@ router.put('/:id', uploadOptions.single('image'), async (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-    Product.findByIdAndRemove(req.params.id)
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    Product.findByIdAndRemove(id_obj)
         .then((product) => {
             if (product) {
                 return res.status(200).json({
@@ -186,7 +189,8 @@ router.put(
     async (req, res) => {
         // isValidObjectID to evoid using try {} catch, to avoid an exception
         // we use it ony in PUTs
-        if (!mongoose.isValidObjectId(req.params.id)) {
+        const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+        if (!mongoose.isValidObjectId(id_obj)) {
             return res.status(400).send('Invalid Product Id');
         }
         const files = req.files;
@@ -200,7 +204,7 @@ router.put(
         }
 
         const product = await Product.findByIdAndUpdate(
-            req.params.id,
+            id_obj,
             {
                 images: imagesPaths,
             },

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 router.get(`/`, async (req, res) => {
     // we don't want to show the field passwordHash
@@ -16,7 +17,8 @@ router.get(`/`, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     // we don't want to show the field passwordHash
-    const user = await User.findById(req.params.id).select('-passwordHash');
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    const user = await User.findById(id_obj).select('-passwordHash');
 
     if (!user) {
         res.status(500).json({
@@ -48,7 +50,8 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-    const userExist = await User.findById(req.params.id);
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    const userExist = await User.findById(id_obj);
     let newPassword;
     if (req.body.password) {
         newPassword = bcrypt.hashSync(req.body.password, 10);
@@ -57,7 +60,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-        req.params.id,
+        id_obj,
         {
             name: req.body.name,
             email: req.body.email,
@@ -83,6 +86,7 @@ router.post('/login', async (req, res) => {
     const secret = process.env.secret;
     if (!user) {
         return res.status(400).send('The user not found');
+        console.log('-------------------- USUARIO NO ENCONTRADO POR EMAIL----');
     }
 
     if (user && bcrypt.compareSync(req.body.password, user.passwordHash)) {
@@ -91,11 +95,18 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             {
                 //this is the payload of the token and is public
-                userId: user.id,
+                userId: user.id, //it's and object
                 isAdmin: user.isAdmin,
             },
             secret,
             { expiresIn: '1d' }
+        );
+        console.log(
+            '---------EMIALUSUARIO LEIDO',
+            user.email,
+            '------- TOKEN',
+            token,
+            '----'
         );
         res.status(200).send({ user: user.email, token: token });
     } else {
@@ -124,7 +135,8 @@ router.post('/register', async (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-    User.findByIdAndRemove(req.params.id)
+    const id_obj = mongoose.Types.ObjectId(req.params.id.trim());
+    User.findByIdAndRemove(id_obj)
         .then((user) => {
             if (user) {
                 return res

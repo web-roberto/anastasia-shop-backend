@@ -2,6 +2,8 @@ const { Order } = require('../models/order');
 const express = require('express');
 const { OrderItem } = require('../models/order-item');
 const router = express.Router();
+const mongoose = require('mongoose');
+
 
 router.get(`/`, async (req, res) => {
     const orderList = await Order.find()
@@ -15,7 +17,8 @@ router.get(`/`, async (req, res) => {
 });
 
 router.get(`/:id`, async (req, res) => {
-    const order = await Order.findById(req.params.id)
+    const id = mongoose.Types.ObjectId(req.params.id.trim());
+    const order = await Order.findById(id)
         .populate('user', 'name')
         .populate({
             path: 'orderItems',
@@ -48,7 +51,9 @@ router.post('/', async (req, res) => {
 
     const totalPrices = await Promise.all(
         orderItemsIdsResolved.map(async (orderItemId) => {
-            const orderItem = await OrderItem.findById(orderItemId).populate(
+            //rob
+            const orderItemId_obj = mongoose.Types.ObjectId(orderItemId.trim());
+            const orderItem = await OrderItem.findById(orderItemId_obj).populate(
                 'product',
                 'price'
             );
@@ -79,8 +84,9 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
+    const id = mongoose.Types.ObjectId(req.params.id.trim());
     const order = await Order.findByIdAndUpdate(
-        req.params.id,
+        id,
         {
             status: req.body.status,
         },
@@ -93,11 +99,13 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-    Order.findByIdAndRemove(req.params.id)
+    const id = mongoose.Types.ObjectId(req.params.id.trim());
+    Order.findByIdAndRemove(id)
         .then(async (order) => {
             if (order) {
-                await order.orderItems.map(async (orderItem) => {
-                    await OrderItem.findByIdAndRemove(orderItem);
+                await order.orderItems.map(async (orderItemId) => {
+                    const orderItemId_obj = mongoose.Types.ObjectId(orderItemId.trim());
+                    await OrderItem.findByIdAndRemove(orderItemId_obj);
                 });
                 return res
                     .status(200)
@@ -114,6 +122,7 @@ router.delete('/:id', (req, res) => {
 });
 
 router.get('/get/totalsales', async (req, res) => {
+
     const totalSales = await Order.aggregate([
         { $group: { _id: null, totalsales: { $sum: '$totalPrice' } } },
     ]);
@@ -137,7 +146,8 @@ router.get(`/get/count`, async (req, res) => {
 });
 
 router.get(`/get/userorders/:userid`, async (req, res) => {
-    const userOrderList = await Order.find({ user: req.params.userid })
+    const userid_obj = mongoose.Types.ObjectId(req.params.userid.trim());
+    const userOrderList = await Order.find({ user: userid_obj })
         .populate({
             path: 'orderItems',
             populate: {
